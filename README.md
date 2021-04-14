@@ -9,5 +9,12 @@ adding parts from the `LCD_DSI_CmdMode_DoubleBuffer` example for `STM32H747I_DIS
   using 1 tx thread.  The image thread receives an event once the display has received the new image
   to be displayed
 
-## board snapshot
-![Board snapshot](board.mp4)
+## board view
+
+![Board view](board.mp4)
+
+<video src="board.mp4" width="1280" height="720" controls preload></video>
+
+<video width="1280" height="720" controls="controls">
+  <source src="https://user-images.githubusercontent.com/39457172/114636730-0539d300-9cc8-11eb-848a-965ba606d748.mp4" type="video/mp4">
+</video>

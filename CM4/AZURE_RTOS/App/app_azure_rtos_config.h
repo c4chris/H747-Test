@@ -44,7 +44,7 @@ extern "C" {
 
 #define USE_MEMORY_POOL_ALLOCATION               1
 
-#define TX_APP_MEM_POOL_SIZE                     3 * 1024
+#define TX_APP_MEM_POOL_SIZE                     5 * 1024
 
 /* USER CODE BEGIN EC */
 

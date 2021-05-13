@@ -45,7 +45,7 @@ extern "C" {
 
 extern TX_EVENT_FLAGS_GROUP cm7_event_group;
 
-	/* USER CODE END ET */
+/* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
@@ -59,9 +59,10 @@ extern TX_EVENT_FLAGS_GROUP cm7_event_group;
 
 /* Exported functions prototypes ---------------------------------------------*/
 UINT App_ThreadX_Init(VOID *memory_ptr);
-void update_image(void);
 
 /* USER CODE BEGIN EFP */
+
+void update_image(void);
 
 /* USER CODE END EFP */
 
@@ -80,3 +81,5 @@ void update_image(void);
 }
 #endif
 #endif /* __APP_THREADX_H__ */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

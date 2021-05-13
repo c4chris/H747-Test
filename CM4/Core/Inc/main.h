@@ -58,16 +58,36 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define NE4_A_Pin GPIO_PIN_3
+#define NE4_A_GPIO_Port GPIOD
+#define NE4_B_Pin GPIO_PIN_11
+#define NE4_B_GPIO_Port GPIOC
 #define OSC32_OUT_Pin GPIO_PIN_15
 #define OSC32_OUT_GPIO_Port GPIOC
 #define OSC32_IN_Pin GPIO_PIN_14
 #define OSC32_IN_GPIO_Port GPIOC
+#define NE1_A_Pin GPIO_PIN_7
+#define NE1_A_GPIO_Port GPIOB
+#define I2C1_SDA_Pin GPIO_PIN_9
+#define I2C1_SDA_GPIO_Port GPIOB
+#define I2C1_SCL_Pin GPIO_PIN_8
+#define I2C1_SCL_GPIO_Port GPIOB
+#define STLINK_TX_Pin GPIO_PIN_10
+#define STLINK_TX_GPIO_Port GPIOA
+#define STLINK_RX_Pin GPIO_PIN_9
+#define STLINK_RX_GPIO_Port GPIOA
 #define CEC_CK_MCO1_Pin GPIO_PIN_8
 #define CEC_CK_MCO1_GPIO_Port GPIOA
 #define OSC_OUT_Pin GPIO_PIN_1
 #define OSC_OUT_GPIO_Port GPIOH
 #define OSC_IN_Pin GPIO_PIN_0
 #define OSC_IN_GPIO_Port GPIOH
+#define NE1_B_Pin GPIO_PIN_6
+#define NE1_B_GPIO_Port GPIOA
+#define I2C4_SCL_Pin GPIO_PIN_12
+#define I2C4_SCL_GPIO_Port GPIOD
+#define I2C4_SDA_Pin GPIO_PIN_13
+#define I2C4_SDA_GPIO_Port GPIOD
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

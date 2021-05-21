@@ -61,8 +61,8 @@ extern TX_EVENT_FLAGS_GROUP cm7_event_group;
 
 
 /* User-defined color ID */
-#define GX_COLOR_ID_BLACK      GX_FIRST_USER_COLOR
-#define GX_COLOR_ID_WHITE       (GX_FIRST_USER_COLOR + 1)
+#define GX_COLOR_ID_BLACK      GX_COLOR_ID_CANVAS
+#define GX_COLOR_ID_WHITE      GX_COLOR_ID_TEXT
 
 /* USER CODE END EC */
 

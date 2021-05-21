@@ -90,16 +90,6 @@ CHAR *demo_strings[] = {
     "Hello World"
 };
 
-#if 0
-/* User-defined color table. */
-static GX_COLOR demo_color_table[] =
-{
-    /* In this demo, two color entries are added to the color table. */
-    GX_COLOR_BLACK,
-    GX_COLOR_WHITE
-};
-#endif
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -278,9 +268,6 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
 	/* Install the demo string table. */
 	//gx_system_string_table_set(demo_strings, SID_MAX);
 
-	/* Install the demo color table. */
-	//gx_system_color_table_set(demo_color_table, sizeof(demo_color_table) / sizeof(GX_COLOR));
-
 	/* Create the demo display and associated driver. */
 	gx_display_create(&demo_display, "demo display",
 										stm32h7_graphics_driver_setup_24xrgb,
@@ -301,6 +288,7 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
 										GX_STYLE_BORDER_NONE, GX_ID_NONE, &root_window_size);
 
 	/* Set the root window to be black. */
+	//gx_widget_fill_color_set(&demo_root_window, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK);
 	//gx_widget_background_set(&demo_root_window, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK);
 
 	/* Create a text prompt on the root window. Set the text color to white, and the background to black. */

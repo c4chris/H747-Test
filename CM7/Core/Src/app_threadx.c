@@ -59,6 +59,47 @@ TX_THREAD       cm7_main_thread;
 TX_THREAD       cm7_lcd_thread;
 TX_EVENT_FLAGS_GROUP cm7_event_group;
 
+/* Define the GUIX resources for this demo. */
+
+/* GUIX display represents the physical display device */
+GX_DISPLAY       demo_display;
+
+/* GUIX canvas is the frame buffer on top of GUIX displayl. */
+GX_CANVAS        default_canvas;
+
+/* The root window is a special GUIX background window, right on top of the canvas. */
+GX_WINDOW_ROOT   demo_root_window;
+
+/* GUIX Prompt displays a string. */
+GX_PROMPT        demo_prompt;
+
+/* Memory for the frame buffer. */
+//GX_COLOR default_canvas_memory[DEFAULT_CANVAS_PIXELS];
+GX_COLOR *default_canvas_memory = (void *) (LCD_FRAME_BUFFER + 0x177000); // FIXME - maybe...
+
+/* Define GUIX strings ID for the demo. */
+enum demo_string_ids
+{
+    SID_HELLO_WORLD = 1,
+    SID_MAX
+};
+
+/* Define GUIX string for the demo. */
+CHAR *demo_strings[] = {
+    NULL,
+    "Hello World"
+};
+
+#if 0
+/* User-defined color table. */
+static GX_COLOR demo_color_table[] =
+{
+    /* In this demo, two color entries are added to the color table. */
+    GX_COLOR_BLACK,
+    GX_COLOR_WHITE
+};
+#endif
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +110,61 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input);
 void Error_Handler(void);
 
 /* USER CODE END PFP */
+static void stm32h7_24xrgb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty)
+{
+	GX_RECTANGLE    Limit;
+	GX_RECTANGLE    Copy;
+	ULONG           offset;
+	INT             copy_width;
+	INT             copy_height;
+	INT             row;
+	INT             src_stride_ulongs;
+	INT             dest_stride_ulongs;
+	ULONG *get;
+	ULONG *put;
+
+	gx_utility_rectangle_define(&Limit, 0, 0,
+															canvas->gx_canvas_x_resolution - 1,
+															canvas->gx_canvas_y_resolution - 1);
+
+	if (gx_utility_rectangle_overlap_detect(&Limit, &canvas->gx_canvas_dirty_area, &Copy))
+	{
+		copy_width = Copy.gx_rectangle_right - Copy.gx_rectangle_left + 1;
+		copy_height = Copy.gx_rectangle_bottom - Copy.gx_rectangle_top + 1;
+
+		/* Read the update area from the canvas */
+		offset = Copy.gx_rectangle_top * canvas->gx_canvas_x_resolution;
+		offset += Copy.gx_rectangle_left;
+		get = canvas ->gx_canvas_memory;
+		get += offset;
+
+		/* Read the area to be updated from the LCD video memory and copy the updated data from the canvas */
+		put = (ULONG *) LCD_FRAME_BUFFER;
+		offset = (canvas->gx_canvas_display_offset_y + Copy.gx_rectangle_top)* DEMO_DISPLAY_WIDTH;
+		offset += canvas->gx_canvas_display_offset_x + Copy.gx_rectangle_left;
+		put += offset;
+
+		src_stride_ulongs = canvas ->gx_canvas_x_resolution;
+		dest_stride_ulongs = DEMO_DISPLAY_WIDTH;
+
+		for(row = 0; row < copy_height; row++)
+		{
+			memcpy(put, get, copy_width * 4);
+			put += dest_stride_ulongs;
+			get += src_stride_ulongs;
+		}
+	}
+}
+
+UINT stm32h7_graphics_driver_setup_24xrgb(GX_DISPLAY *display)
+{
+	// Display hardware should have been setup already
+
+	_gx_display_driver_32argb_setup(display, (void *)LCD_FRAME_BUFFER, stm32h7_24xrgb_buffer_toggle);
+
+	return(GX_SUCCESS);
+}
+
 /**
   * @brief  Application ThreadX Initialization.
   * @param memory_ptr: memory pointer
@@ -138,9 +234,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 /* USER CODE BEGIN 1 */
 void tx_cm7_main_thread_entry(ULONG thread_input)
 {
-  UINT status;
-  CHAR read_buffer[32];
-  CHAR data[] = "This is ThreadX working on STM32 CM7";
+  //UINT status;
+  //CHAR read_buffer[32];
+  //CHAR data[] = "This is ThreadX working on STM32 CM7";
 
   /* Infinite Loop */
   for( ;; )
@@ -152,6 +248,7 @@ void tx_cm7_main_thread_entry(ULONG thread_input)
 
 void tx_cm7_lcd_thread_entry(ULONG thread_input)
 {
+#if 0
   UINT status;
 	ULONG actual_events;
 
@@ -171,6 +268,59 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
   	else
   		BSP_LED_Toggle(LED_RED);
   }
+#endif
+  GX_RECTANGLE    root_window_size;
+  GX_RECTANGLE    prompt_position;
+
+  /* Initialize GUIX. */
+  gx_system_initialize();
+
+	/* Install the demo string table. */
+	//gx_system_string_table_set(demo_strings, SID_MAX);
+
+	/* Install the demo color table. */
+	//gx_system_color_table_set(demo_color_table, sizeof(demo_color_table) / sizeof(GX_COLOR));
+
+	/* Create the demo display and associated driver. */
+	gx_display_create(&demo_display, "demo display",
+										stm32h7_graphics_driver_setup_24xrgb,
+										DEMO_DISPLAY_WIDTH, DEMO_DISPLAY_HEIGHT);
+
+	/* Create the default canvas. */
+	gx_canvas_create(&default_canvas, "demo canvas",&demo_display,
+							 GX_CANVAS_MANAGED | GX_CANVAS_VISIBLE,
+							 DEMO_DISPLAY_WIDTH,DEMO_DISPLAY_HEIGHT,
+							 default_canvas_memory, sizeof(default_canvas_memory));
+
+	/*Define the size of the root window. */
+	gx_utility_rectangle_define(&root_window_size, 0, 0,
+													DEMO_DISPLAY_WIDTH - 1, DEMO_DISPLAY_HEIGHT - 1);
+
+	/* Create a background root window and attach to the canvas. */
+	gx_window_root_create(&demo_root_window, "demo root window", &default_canvas,
+										GX_STYLE_BORDER_NONE, GX_ID_NONE, &root_window_size);
+
+	/* Set the root window to be black. */
+	//gx_widget_background_set(&demo_root_window, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK);
+
+	/* Create a text prompt on the root window. Set the text color to white, and the background to black. */
+
+	/* Define the size and the position of the prompt. */
+	gx_utility_rectangle_define(&prompt_position, 100, 90, 220, 130);
+
+	/* Create the prompt on top of the root window using the string defined by string ID SID_HELLO_WORLD. */
+	gx_prompt_create(&demo_prompt, NULL, &demo_root_window, SID_HELLO_WORLD,
+							 GX_STYLE_NONE, GX_ID_NONE, &prompt_position);
+
+	/* Set the text color to be white, and the background color to be black. */
+	gx_prompt_text_color_set(&demo_prompt, GX_COLOR_ID_WHITE, GX_COLOR_ID_WHITE, GX_COLOR_ID_WHITE);
+	//gx_widget_background_set(&demo_prompt, GX_COLOR_ID_BLACK,GX_COLOR_ID_BLACK);
+
+	/* Show the root window. */
+	gx_widget_show(&demo_root_window);
+
+	/* let GUIX run! */
+	gx_system_start();
 }
 
 //void BSP_SD_DetectCallback(uint32_t Instance, uint32_t Status)

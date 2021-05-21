@@ -43,6 +43,12 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 
+#define I2Cx_TIMEOUT_MAX 0x3000 /* The value of the maximal timeout for I2C waiting loops */
+
+extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c4;
+extern UART_HandleTypeDef huart1;
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

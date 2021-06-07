@@ -59,36 +59,11 @@ TX_THREAD       cm7_main_thread;
 TX_THREAD       cm7_lcd_thread;
 TX_EVENT_FLAGS_GROUP cm7_event_group;
 
-/* Define the GUIX resources for this demo. */
+/* Define the GUIX resources. */
 
-/* GUIX display represents the physical display device */
-GX_DISPLAY       demo_display;
+/* Define the root window pointer. */
 
-/* GUIX canvas is the frame buffer on top of GUIX displayl. */
-GX_CANVAS        default_canvas;
-
-/* The root window is a special GUIX background window, right on top of the canvas. */
-GX_WINDOW_ROOT   demo_root_window;
-
-/* GUIX Prompt displays a string. */
-GX_PROMPT        demo_prompt;
-
-/* Memory for the frame buffer. */
-//GX_COLOR default_canvas_memory[DEFAULT_CANVAS_PIXELS];
-GX_COLOR *default_canvas_memory = (void *) (LCD_FRAME_BUFFER + 0x177000); // FIXME - maybe...
-
-/* Define GUIX strings ID for the demo. */
-enum demo_string_ids
-{
-    SID_HELLO_WORLD = 1,
-    SID_MAX
-};
-
-/* Define GUIX string for the demo. */
-CHAR *demo_strings[] = {
-    NULL,
-    "Hello World"
-};
+GX_WINDOW_ROOT *root_window;
 
 /* USER CODE END PV */
 
@@ -98,62 +73,10 @@ CHAR *demo_strings[] = {
 void tx_cm7_main_thread_entry(ULONG thread_input);
 void tx_cm7_lcd_thread_entry(ULONG thread_input);
 void Error_Handler(void);
+static void stm32h7_32argb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty_area);
+UINT stm32h7_graphics_driver_setup_32argb(GX_DISPLAY *display);
 
 /* USER CODE END PFP */
-static void stm32h7_24xrgb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty)
-{
-	GX_RECTANGLE    Limit;
-	GX_RECTANGLE    Copy;
-	ULONG           offset;
-	INT             copy_width;
-	INT             copy_height;
-	INT             row;
-	INT             src_stride_ulongs;
-	INT             dest_stride_ulongs;
-	ULONG *get;
-	ULONG *put;
-
-	gx_utility_rectangle_define(&Limit, 0, 0,
-															canvas->gx_canvas_x_resolution - 1,
-															canvas->gx_canvas_y_resolution - 1);
-
-	if (gx_utility_rectangle_overlap_detect(&Limit, &canvas->gx_canvas_dirty_area, &Copy))
-	{
-		copy_width = Copy.gx_rectangle_right - Copy.gx_rectangle_left + 1;
-		copy_height = Copy.gx_rectangle_bottom - Copy.gx_rectangle_top + 1;
-
-		/* Read the update area from the canvas */
-		offset = Copy.gx_rectangle_top * canvas->gx_canvas_x_resolution;
-		offset += Copy.gx_rectangle_left;
-		get = canvas ->gx_canvas_memory;
-		get += offset;
-
-		/* Read the area to be updated from the LCD video memory and copy the updated data from the canvas */
-		put = (ULONG *) LCD_FRAME_BUFFER;
-		offset = (canvas->gx_canvas_display_offset_y + Copy.gx_rectangle_top)* DEMO_DISPLAY_WIDTH;
-		offset += canvas->gx_canvas_display_offset_x + Copy.gx_rectangle_left;
-		put += offset;
-
-		src_stride_ulongs = canvas ->gx_canvas_x_resolution;
-		dest_stride_ulongs = DEMO_DISPLAY_WIDTH;
-
-		for(row = 0; row < copy_height; row++)
-		{
-			memcpy(put, get, copy_width * 4);
-			put += dest_stride_ulongs;
-			get += src_stride_ulongs;
-		}
-	}
-}
-
-UINT stm32h7_graphics_driver_setup_24xrgb(GX_DISPLAY *display)
-{
-	// Display hardware should have been setup already
-
-	_gx_display_driver_32argb_setup(display, (void *)LCD_FRAME_BUFFER, stm32h7_24xrgb_buffer_toggle);
-
-	return(GX_SUCCESS);
-}
 
 /**
   * @brief  Application ThreadX Initialization.
@@ -259,56 +182,130 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
   		BSP_LED_Toggle(LED_RED);
   }
 #endif
-  GX_RECTANGLE    root_window_size;
-  GX_RECTANGLE    prompt_position;
+  extern GX_STUDIO_DISPLAY_INFO H747_Test_display_table[]; // meh...
 
   /* Initialize GUIX. */
   gx_system_initialize();
 
-	/* Install the demo string table. */
-	//gx_system_string_table_set(demo_strings, SID_MAX);
+  /* Configure the main display. */
+  H747_Test_display_table[MAIN_DISPLAY].canvas_memory = (GX_COLOR *) Buffers[0]; // I think...
+  gx_studio_display_configure(MAIN_DISPLAY,                         /* Display to configure*/
+															stm32h7_graphics_driver_setup_32argb, /* Driver to use */
+                              LANGUAGE_ENGLISH,                     /* Language to install */
+                              MAIN_DISPLAY_DEFAULT_THEME,           /* Theme to install */
+                              &root_window);                        /* Root window pointer */
 
-	/* Create the demo display and associated driver. */
-	gx_display_create(&demo_display, "demo display",
-										stm32h7_graphics_driver_setup_24xrgb,
-										DEMO_DISPLAY_WIDTH, DEMO_DISPLAY_HEIGHT);
+  /* Create the screen - attached to root window. */
 
-	/* Create the default canvas. */
-	gx_canvas_create(&default_canvas, "demo canvas",&demo_display,
-							 GX_CANVAS_MANAGED | GX_CANVAS_VISIBLE,
-							 DEMO_DISPLAY_WIDTH,DEMO_DISPLAY_HEIGHT,
-							 default_canvas_memory, sizeof(default_canvas_memory));
+  gx_studio_named_widget_create("main_window", (GX_WIDGET *) root_window, GX_NULL);
 
-	/*Define the size of the root window. */
-	gx_utility_rectangle_define(&root_window_size, 0, 0,
-													DEMO_DISPLAY_WIDTH - 1, DEMO_DISPLAY_HEIGHT - 1);
+  /* Show the root window to make it visible. */
+  gx_widget_show(root_window);
 
-	/* Create a background root window and attach to the canvas. */
-	gx_window_root_create(&demo_root_window, "demo root window", &default_canvas,
-										GX_STYLE_BORDER_NONE, GX_ID_NONE, &root_window_size);
+  /* Let GUIX run. */
+  gx_system_start();
+}
 
-	/* Set the root window to be black. */
-	//gx_widget_fill_color_set(&demo_root_window, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK);
-	//gx_widget_background_set(&demo_root_window, GX_COLOR_ID_BLACK, GX_COLOR_ID_BLACK);
+UINT weight_prompt_event(GX_NUMERIC_PIXELMAP_PROMPT *widget, GX_EVENT *event_ptr)
+{
+	UINT status = GX_SUCCESS;
 
-	/* Create a text prompt on the root window. Set the text color to white, and the background to black. */
+	switch(event_ptr->gx_event_type)
+	{
+		//case xyz:
+			/* Insert custom event handling here */
+			//break;
 
-	/* Define the size and the position of the prompt. */
-	gx_utility_rectangle_define(&prompt_position, 100, 90, 220, 130);
+		default:
+			/* Pass all other events to the default tree view event processing */
+			status = gx_prompt_event_process((GX_PROMPT *) widget, event_ptr);
+			break;
+	}
+	return status;
+}
 
-	/* Create the prompt on top of the root window using the string defined by string ID SID_HELLO_WORLD. */
-	gx_prompt_create(&demo_prompt, NULL, &demo_root_window, SID_HELLO_WORLD,
-							 GX_STYLE_NONE, GX_ID_NONE, &prompt_position);
+/*
+ * VOID (*gx_display_driver_buffer_toggle)(struct GX_CANVAS_STRUCT *canvas, GX_RECTANGLE *dirty_area)
+ * This is a pointer to a function to toggle between the working and visible frame buffers for
+ * double-buffered memory systems. This function must first instruct the hardware to begin using
+ * the new frame buffer, then copy the modified portion of the new visible buffer to the companion
+ * buffer, to insure the two buffers stay in synch.
+ */
+static void stm32h7_32argb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty_area)
+{
+	ULONG offset;
+	INT   copy_width;
+	INT   copy_height;
+	ULONG *get;
+	ULONG *put;
+	ULONG actual_events;
 
-	/* Set the text color to be white, and the background color to be black. */
-	gx_prompt_text_color_set(&demo_prompt, GX_COLOR_ID_WHITE, GX_COLOR_ID_WHITE, GX_COLOR_ID_WHITE);
-	//gx_widget_background_set(&demo_prompt, GX_COLOR_ID_BLACK,GX_COLOR_ID_BLACK);
+	/* FIXME - maybe make sure the event is cleared here ?  */
 
-	/* Show the root window. */
-	gx_widget_show(&demo_root_window);
+	/* swap the buffers */
+	if (pend_buffer < 0)
+	{
+		/* Switch to other buffer */
+		pend_buffer = 1 - front_buffer;
 
-	/* let GUIX run! */
-	gx_system_start();
+		/* Refresh the display */
+		HAL_DSI_Refresh(&hlcd_dsi);
+	}
+
+	/* Request that event flags 0 is set. If it is set it should be cleared. If the event
+	flags are not set, this service suspends for a maximum of 20 timer-ticks. */
+	UINT status = tx_event_flags_get(&cm7_event_group, 0x1, TX_AND_CLEAR, &actual_events, 200);
+
+	/* If status equals TX_SUCCESS, actual_events contains the actual events obtained. */
+	if (status == TX_SUCCESS)
+	{
+		/* now refresh offline buffer and switch buffers in canvas  */
+
+		copy_width = dirty_area->gx_rectangle_right - dirty_area->gx_rectangle_left + 1;
+		copy_height = dirty_area->gx_rectangle_bottom - dirty_area->gx_rectangle_top + 1;
+
+		/* Read the update area from the canvas */
+		offset = dirty_area->gx_rectangle_top * canvas->gx_canvas_x_resolution;
+		offset += dirty_area->gx_rectangle_left;
+		get = canvas->gx_canvas_memory;
+		get += offset;
+
+		/* Read the area to be updated from the LCD video memory and copy the updated data from the canvas */
+		put = (ULONG *) Buffers[1 - front_buffer];
+		offset = (canvas->gx_canvas_display_offset_y + dirty_area->gx_rectangle_top) * MAIN_DISPLAY_X_RESOLUTION;
+		offset += canvas->gx_canvas_display_offset_x + dirty_area->gx_rectangle_left;
+		put += offset;
+
+		// RM0388 - pp 780...  not sure about interrupt vs polling yet
+    DMA2D->CR = 0x00000000UL; // | DMA2D_CR_TCIE;
+    DMA2D->FGMAR = (uint32_t) get;
+    DMA2D->OMAR = (uint32_t) put;
+    DMA2D->FGOR = canvas->gx_canvas_x_resolution - copy_width;
+    DMA2D->OOR = MAIN_DISPLAY_X_RESOLUTION - copy_width;
+    DMA2D->FGPFCCR = LTDC_PIXEL_FORMAT_ARGB8888;
+    DMA2D->OPFCCR = LTDC_PIXEL_FORMAT_ARGB8888;
+    DMA2D->NLR = (uint32_t) (copy_width << 16) | (uint16_t) copy_height;
+    DMA2D->CR |= DMA2D_CR_START;
+    while (DMA2D->CR & DMA2D_CR_START) {}
+
+		/* Assign canvas memory block. */
+		status = gx_canvas_memory_define(canvas, (GX_COLOR *) Buffers[1 - front_buffer], (800*480*4));
+
+		/* If status is GX_SUCCESS, the canvas memory pointer has be
+		reassigned. */
+
+	}
+	else
+		BSP_LED_Toggle(LED_RED);
+}
+
+UINT stm32h7_graphics_driver_setup_32argb(GX_DISPLAY *display)
+{
+	// Display hardware should have been setup already
+
+	_gx_display_driver_32argb_setup(display, (void *)LCD_FRAME_BUFFER, stm32h7_32argb_buffer_toggle);
+
+	return(GX_SUCCESS);
 }
 
 //void BSP_SD_DetectCallback(uint32_t Instance, uint32_t Status)

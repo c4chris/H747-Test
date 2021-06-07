@@ -119,10 +119,10 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
   /* USER CODE BEGIN App_ThreadX_Init */
   CHAR *pointer;
 
-  /*Allocate memory for fx_thread_entry*/
+  /*Allocate memory for main_thread_entry*/
   ret = tx_byte_allocate(byte_pool, (VOID **) &pointer, DEFAULT_STACK_SIZE, TX_NO_WAIT);
 
-  /* Check FILEX_DEFAULT_STACK_SIZE allocation*/
+  /* Check DEFAULT_STACK_SIZE allocation*/
   if (ret != TX_SUCCESS)
   {
     Error_Handler();
@@ -138,6 +138,15 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     Error_Handler();
   }
 
+  /*Allocate memory for i2c1_thread_entry*/
+  ret = tx_byte_allocate(byte_pool, (VOID **) &pointer, DEFAULT_STACK_SIZE, TX_NO_WAIT);
+
+  /* Check DEFAULT_STACK_SIZE allocation*/
+  if (ret != TX_SUCCESS)
+  {
+    Error_Handler();
+  }
+
   /* Create the i2c1 thread.  */
   ret = tx_thread_create(&cm4_i2c1_thread, "tx_cm4_i2c1_thread", tx_cm4_i2c1_thread_entry, 0, pointer, DEFAULT_STACK_SIZE, DEFAULT_THREAD_PRIO,
                          DEFAULT_PREEMPTION_THRESHOLD, TX_NO_TIME_SLICE, TX_AUTO_START);
@@ -148,11 +157,29 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
     Error_Handler();
   }
 
+  /*Allocate memory for i2c4_thread_entry*/
+  ret = tx_byte_allocate(byte_pool, (VOID **) &pointer, DEFAULT_STACK_SIZE, TX_NO_WAIT);
+
+  /* Check DEFAULT_STACK_SIZE allocation*/
+  if (ret != TX_SUCCESS)
+  {
+    Error_Handler();
+  }
+
   /* Create the i2c4 thread.  */
   ret = tx_thread_create(&cm4_i2c4_thread, "tx_cm4_i2c4_thread", tx_cm4_i2c4_thread_entry, 0, pointer, DEFAULT_STACK_SIZE, DEFAULT_THREAD_PRIO,
                          DEFAULT_PREEMPTION_THRESHOLD, TX_NO_TIME_SLICE, TX_AUTO_START);
 
   /* Check i2c4 thread creation */
+  if (ret != TX_SUCCESS)
+  {
+    Error_Handler();
+  }
+
+  /*Allocate memory for uart_thread_entry*/
+  ret = tx_byte_allocate(byte_pool, (VOID **) &pointer, DEFAULT_STACK_SIZE, TX_NO_WAIT);
+
+  /* Check DEFAULT_STACK_SIZE allocation*/
   if (ret != TX_SUCCESS)
   {
     Error_Handler();
@@ -336,12 +363,13 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 	uint8_t dataBuf[4];
 	uint32_t low[4] = { 950, 950, 950, 950 };
 	unsigned int c[4] = { 0, 0, 0, 0 };
+	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
 	/* Power up load cells and detect them */
 	while (counted != 4)
 	{
 		for (unsigned int i = 0; i < 4; i++)
 		{
-			printf("Detect cell %u ", i + 1);
+			printf("Detect cell %u", i + 1);
 			for (unsigned int j = 0; j < nbAddress; j++)
 			{
 				cell[i].address = address[j] << 1;
@@ -352,15 +380,16 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 				{
 					uint8_t a = (dataBuf[1] >> 2) & 3;
 					uint8_t b = ((dataBuf[1] & 3) << 5) | (dataBuf[2] >> 3);
-					printf("%02X %u %02X\n", cell[i].address >> 1, a, b);
+					printf(" %02X %u %02X", cell[i].address >> 1, a, b);
 					break;
 				} else {
 					cell[i].address = 0;
-					printf("-------------\n");
+					printf(" -------------");
 				}
 			}
+			printf("\r\n");
 		}
-		printf("%02X %02X %02X %02X\n", cell[0].address >> 1, cell[1].address >> 1, cell[2].address >> 1, cell[3].address >> 1);
+		printf("%02X %02X %02X %02X\r\n", cell[0].address >> 1, cell[1].address >> 1, cell[2].address >> 1, cell[3].address >> 1);
 		// should now check whether we have all the cells ready
 		for (unsigned int i = 0; i < 4; i += 2)
 		{
@@ -383,7 +412,7 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 					cell[i].address = new << 1;
 			  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
 					HAL_GPIO_WritePin(cell[i].gpio, cell[i].pin, GPIO_PIN_SET);
-					printf("%u %02X => %02X\n", i, cell[i + 1].address >> 1, cell[i].address >> 1);
+					printf("%u %02X => %02X\r\n", i, cell[i + 1].address >> 1, cell[i].address >> 1);
 			  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
 				}
 				else
@@ -391,11 +420,11 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 					// should not happen...
 					cell[i].address = 0;
 					HAL_GPIO_WritePin(cell[i].gpio, cell[i].pin, GPIO_PIN_SET);
-					printf("%u BAD READ %d\n", i, res);
+					printf("%u BAD READ %d\r\n", i, res);
 				}
 			}
 		}
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
+  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND * 5);
 		counted = 0;
 		for (unsigned int i = 0; i < 4; i++)
 			if (cell[i].address != 0)
@@ -407,9 +436,9 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
   {
   	// should maybe setup a way to go back to probe and address adjust mode if there are errors
   	ULONG ticks = tx_time_get() / TX_TIMER_TICKS_PER_SECOND;
-		printf("WS %lu\n",ticks);
-		printf("%u %u %u %u\n",errs[0],badstatus[0],errs[1],badstatus[1]);
-		printf("%u %u %u %u\n",errs[2],badstatus[2],errs[3],badstatus[3]);
+		printf("WS %lu\r\n",ticks);
+		printf("%u %u %u %u\r\n",errs[0],badstatus[0],errs[1],badstatus[1]);
+		printf("%u %u %u %u\r\n",errs[2],badstatus[2],errs[3],badstatus[3]);
 		for (unsigned int i = 0; i < 4; i++)
 		{
 			if (c[i] != counts[i])
@@ -426,12 +455,12 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 					weight -= low[i];
 				weight *= 5000;
 				weight /= 14000;
-				printf("%u: %2d.%02d kg\n", i, (uint16_t)(weight / 100), (uint16_t)(weight % 100));
+				printf("%u: %2d.%02d kg\r\n", i, (uint16_t)(weight / 100), (uint16_t)(weight % 100));
 				uint32_t temp = (bridgeValue[i * 4 + 2] << 3) + (bridgeValue[i * 4 + 3] >> 5);
 				temp *= 2000;
 				temp /= 2048; // just a guess at this point...
 				temp -= 500;
-				printf("  T: %2d.%01d C\n", (uint16_t)(temp / 10), (uint16_t)(temp % 10));
+				printf("  T: %2d.%01d C\r\n", (uint16_t)(temp / 10), (uint16_t)(temp % 10));
 				c[i] = counts[i];
 			}
 		}
@@ -544,6 +573,7 @@ void tx_cm4_uart_thread_entry(ULONG thread_input)
   UCHAR read_buffer[32];
   CHAR data[] = "This is ThreadX working on STM32 CM4";
 
+	printf("\r\n%s\r\nStarting Run on %s\r\n", data, _tx_version_id);
   /* Infinite Loop */
   for( ;; )
   {
@@ -556,7 +586,6 @@ void tx_cm4_uart_thread_entry(ULONG thread_input)
 	unsigned int u2cc = __HAL_DMA_GET_COUNTER(huart1.hdmarx);
 	//HAL_StatusTypeDef res;
 	int inLen = 0;
-	printf("\r\n%s\r\nStarting Run on %s\r\n# ", data, _tx_version_id);
 	/* Infinite loop */
 	for(;;)
 	{

@@ -33,6 +33,8 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "gx_api.h"
 #include "gx_display.h"
+#include "H747_Test_specifications.h"
+#include "H747_Test_resources.h"
 #include "stm32h747i_discovery.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h747i_discovery.h"
@@ -40,6 +42,7 @@ extern "C" {
 #include "stm32h747i_discovery_sdram.h"
 #include "stm32h747i_discovery_bus.h"
 #include "stm32_lcd.h"
+#include "main.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -51,18 +54,6 @@ extern TX_EVENT_FLAGS_GROUP cm7_event_group;
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
-/* Define the display dimentions specific to this implemenation. */
-#define DEMO_DISPLAY_WIDTH              800
-#define DEMO_DISPLAY_HEIGHT             480
-
-/* Define the number of pixels on the canvas */
-#define DEFAULT_CANVAS_PIXELS     (DEMO_DISPLAY_WIDTH * DEMO_DISPLAY_HEIGHT)
-
-
-/* User-defined color ID */
-#define GX_COLOR_ID_BLACK      GX_COLOR_ID_CANVAS
-#define GX_COLOR_ID_WHITE      GX_COLOR_ID_TEXT
 
 /* USER CODE END EC */
 

@@ -37,6 +37,9 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+extern __IO int32_t  front_buffer;
+extern __IO int32_t  pend_buffer;
+extern const uint32_t Buffers[];
 
 /* USER CODE END ET */
 

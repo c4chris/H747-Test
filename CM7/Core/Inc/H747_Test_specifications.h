@@ -6,7 +6,7 @@
 /*  GUIX Studio User Guide, or visit our web site at azure.com/rtos            */
 /*                                                                             */
 /*  GUIX Studio Revision 6.1.7.0                                               */
-/*  Date (dd.mm.yyyy):  7. 6.2021   Time (hh:mm): 01:09                        */
+/*  Date (dd.mm.yyyy): 10. 6.2021   Time (hh:mm): 00:36                        */
 /*******************************************************************************/
 
 
@@ -106,6 +106,8 @@ extern MAIN_WINDOW_CONTROL_BLOCK main_window;
 
 /* Declare event process functions, draw functions, and callback functions     */
 
+UINT main_screen_event_handler(GX_WINDOW *widget, GX_EVENT *event_ptr);
+VOID weight_format_func(GX_NUMERIC_PIXELMAP_PROMPT *, INT);
 UINT weight_prompt_event(GX_NUMERIC_PIXELMAP_PROMPT *widget, GX_EVENT *event_ptr);
 
 /* Declare the GX_STUDIO_DISPLAY_INFO structure                                */

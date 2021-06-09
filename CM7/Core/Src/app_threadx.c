@@ -206,6 +206,52 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
   gx_system_start();
 }
 
+/*************************************************************************************/
+VOID weight_update()
+{
+  /* Set a value to “my_numeric_pix_prompt”. */
+  gx_numeric_pixelmap_prompt_value_set(&main_window.main_window_weight_prompt, (uwTick / 100) % 10000);
+}
+
+/*************************************************************************************/
+UINT main_screen_event_handler(GX_WINDOW *window, GX_EVENT *event_ptr)
+{
+	switch (event_ptr->gx_event_type)
+	{
+		case GX_EVENT_SHOW:
+			/* Set current weight. */
+			weight_update();
+
+			/* Start a timer to update weight. */
+			gx_system_timer_start(&main_window, CLOCK_TIMER, GX_TICKS_SECOND, GX_TICKS_SECOND);
+			break;
+
+		case GX_EVENT_TIMER:
+			if (event_ptr->gx_event_payload.gx_event_timer_id == CLOCK_TIMER)
+			{
+				weight_update();
+			}
+			break;
+	}
+	return gx_window_event_process(window, event_ptr);
+}
+
+/* Define my numeric format function. */
+VOID weight_format_func(GX_NUMERIC_PIXELMAP_PROMPT *prompt, INT value)
+{
+	/* If the value is “1234”, the new format will be “123.4”. */
+
+	INT length;
+	gx_utility_ltoa(value / 10,
+									prompt->gx_numeric_pixelmap_prompt_buffer,
+									GX_NUMERIC_PROMPT_BUFFER_SIZE);
+	length = GX_STRLEN(prompt->gx_numeric_pixelmap_prompt_buffer);
+	prompt->gx_numeric_pixelmap_prompt_buffer[length++] = '.';
+	gx_utility_ltoa(value % 10,
+									prompt->gx_numeric_pixelmap_prompt_buffer + length,
+									GX_NUMERIC_PROMPT_BUFFER_SIZE - length);
+}
+
 UINT weight_prompt_event(GX_NUMERIC_PIXELMAP_PROMPT *widget, GX_EVENT *event_ptr)
 {
 	UINT status = GX_SUCCESS;

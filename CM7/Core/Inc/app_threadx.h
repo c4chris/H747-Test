@@ -75,6 +75,7 @@ void update_image(void);
 /* USER CODE BEGIN PD */
 
 #define LCD_FRAME_BUFFER        0xD0000000
+#define CLOCK_TIMER             0x01
 
 /* USER CODE END PD */
 

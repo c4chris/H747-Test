@@ -6,7 +6,7 @@
 /*  GUIX Studio User Guide, or visit our web site at azure.com/rtos            */
 /*                                                                             */
 /*  GUIX Studio Revision 6.1.7.0                                               */
-/*  Date (dd.mm.yyyy):  7. 6.2021   Time (hh:mm): 01:09                        */
+/*  Date (dd.mm.yyyy): 10. 6.2021   Time (hh:mm): 00:36                        */
 /*******************************************************************************/
 
 
@@ -104,7 +104,7 @@ GX_WINDOW_PROPERTIES main_window_properties =
 };
 GX_NUMERIC_PIXELMAP_PROMPT_PROPERTIES main_window_weight_prompt_properties =
 {
-    GX_STRING_ID_STRING_3,                   /* string id                      */
+    0,                                       /* string id                      */
     GX_FONT_ID_CASCADIACODE,                 /* font id                        */
     GX_COLOR_ID_TEXT,                        /* normal text color              */
     GX_COLOR_ID_SELECTED_TEXT,               /* selected text color            */
@@ -115,8 +115,8 @@ GX_NUMERIC_PIXELMAP_PROMPT_PROPERTIES main_window_weight_prompt_properties =
     0,                                       /* selected left pixelmap id      */
     0,                                       /* selected fill pixelmap id      */
     0,                                       /* selected right pixelmap id     */
-    GX_NULL,                                 /* format function                */
-    0                                        /* numeric prompt value           */
+    weight_format_func,                      /* format function                */
+    1234                                     /* numeric prompt value           */
 };
 
 GX_CONST GX_STUDIO_WIDGET main_window_weight_prompt_define =
@@ -127,7 +127,7 @@ GX_CONST GX_STUDIO_WIDGET main_window_weight_prompt_define =
     #if defined(GX_WIDGET_USER_DATA)
     0,                                       /* user data                      */
     #endif
-    GX_STYLE_BORDER_NONE|GX_STYLE_ENABLED|GX_STYLE_TEXT_LEFT,   /* style flags */
+    GX_STYLE_BORDER_NONE|GX_STYLE_ENABLED|GX_STYLE_TEXT_RIGHT,   /* style flags */
     GX_STATUS_ACCEPTS_FOCUS,                 /* status flags                   */
     sizeof(GX_NUMERIC_PIXELMAP_PROMPT),      /* control block size             */
     GX_COLOR_ID_WIDGET_FILL,                 /* normal color id                */
@@ -159,7 +159,7 @@ GX_CONST GX_STUDIO_WIDGET main_window_define =
     GX_COLOR_ID_DISABLED_FILL,               /* disabled color id              */
     gx_studio_window_create,                 /* create function                */
     GX_NULL,                                 /* drawing function override      */
-    GX_NULL,                                 /* event function override        */
+    (UINT (*)(GX_WIDGET *, GX_EVENT *)) main_screen_event_handler, /* event function override */
     {0, 0, 799, 479},                        /* widget size                    */
     GX_NULL,                                 /* next widget                    */
     &main_window_weight_prompt_define,       /* child widget                   */

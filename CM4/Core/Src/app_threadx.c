@@ -83,10 +83,10 @@ volatile uint8_t setZero3;
 volatile uint8_t setZero4;
 volatile uint8_t availableCells;
 CellTypeDef cell[4] = {
-		{&hi2c4, 0, NE4_A_GPIO_Port, NE4_A_Pin},
-		{&hi2c4, 0, NE4_B_GPIO_Port, NE4_B_Pin},
-		{&hi2c1, 0, NE1_A_GPIO_Port, NE1_A_Pin},
-		{&hi2c1, 0, NE1_B_GPIO_Port, NE1_B_Pin}
+		{&hi2c4, 0x28 << 1, NE4_A_GPIO_Port, NE4_A_Pin},
+		{&hi2c4, 0x36 << 1, NE4_B_GPIO_Port, NE4_B_Pin},
+		{&hi2c1, 0x28 << 1, NE1_A_GPIO_Port, NE1_A_Pin},
+		{&hi2c1, 0x36 << 1, NE1_B_GPIO_Port, NE1_B_Pin}
 };
 
 /* USER CODE END PV */
@@ -355,15 +355,46 @@ HAL_StatusTypeDef exit_command_mode(CellTypeDef *cell, uint8_t *dataBuf, const u
 
 void tx_cm4_main_thread_entry(ULONG thread_input)
 {
+#if 0
 	const int nbAddress = 5;
 	const uint8_t address[5] = { 0x28, 0x36, 0x46, 0x48, 0x51 };
 	const uint32_t I2C_Timeout = I2Cx_TIMEOUT_MAX;
 	HAL_StatusTypeDef res;
-	uint8_t counted = 0;
 	uint8_t dataBuf[4];
+#endif
+	uint8_t counted = 0;
 	uint32_t low[4] = { 950, 950, 950, 950 };
 	unsigned int c[4] = { 0, 0, 0, 0 };
 	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
+#if 0
+	/* debug I2C */
+	GPIO_InitTypeDef  GPIO_InitStruct;
+	HAL_I2C_MspDeInit(&hi2c1);
+	HAL_I2C_MspDeInit(&hi2c4);
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	GPIO_InitStruct.Pin = I2C1_SDA_Pin|I2C1_SCL_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	HAL_GPIO_Init(I2C1_SDA_GPIO_Port, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = I2C4_SDA_Pin|I2C4_SCL_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	HAL_GPIO_Init(I2C4_SDA_GPIO_Port, &GPIO_InitStruct);
+	while (1)
+	{
+		HAL_GPIO_TogglePin(I2C1_SDA_GPIO_Port, I2C1_SDA_Pin);
+		HAL_GPIO_TogglePin(I2C4_SDA_GPIO_Port, I2C4_SDA_Pin);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND/50);
+		HAL_GPIO_TogglePin(I2C1_SCL_GPIO_Port, I2C1_SCL_Pin);
+		HAL_GPIO_TogglePin(I2C4_SCL_GPIO_Port, I2C4_SCL_Pin);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND/50);
+		HAL_GPIO_TogglePin(I2C1_SDA_GPIO_Port, I2C1_SDA_Pin);
+		HAL_GPIO_TogglePin(I2C4_SDA_GPIO_Port, I2C4_SDA_Pin);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND/50);
+	}
 	/* Power up load cells and detect them */
 	while (counted != 4)
 	{
@@ -430,15 +461,17 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 			if (cell[i].address != 0)
 				counted += 1;
 	}
+#endif
+	counted = 4;
 	availableCells = counted;
   /* Infinite loop */
   for(;;)
   {
   	// should maybe setup a way to go back to probe and address adjust mode if there are errors
   	ULONG ticks = tx_time_get() / TX_TIMER_TICKS_PER_SECOND;
-		printf("WS %lu\r\n",ticks);
-		printf("%u %u %u %u\r\n",errs[0],badstatus[0],errs[1],badstatus[1]);
-		printf("%u %u %u %u\r\n",errs[2],badstatus[2],errs[3],badstatus[3]);
+		printf("WS %8lu",ticks);
+		printf(" | %u %u %u %u",errs[0],badstatus[0],errs[1],badstatus[1]);
+		printf(" %u %u %u %u",errs[2],badstatus[2],errs[3],badstatus[3]);
 		for (unsigned int i = 0; i < 4; i++)
 		{
 			if (c[i] != counts[i])
@@ -455,17 +488,20 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 					weight -= low[i];
 				weight *= 5000;
 				weight /= 14000;
-				printf("%u: %2d.%02d kg\r\n", i, (uint16_t)(weight / 100), (uint16_t)(weight % 100));
+				printf(" | %2d.%02d kg", (uint16_t)(weight / 100), (uint16_t)(weight % 100));
 				uint32_t temp = (bridgeValue[i * 4 + 2] << 3) + (bridgeValue[i * 4 + 3] >> 5);
 				temp *= 2000;
 				temp /= 2048; // just a guess at this point...
 				temp -= 500;
-				printf("  T: %2d.%01d C\r\n", (uint16_t)(temp / 10), (uint16_t)(temp % 10));
+				printf(" %2d.%01d C", (uint16_t)(temp / 10), (uint16_t)(temp % 10));
 				c[i] = counts[i];
 			}
+			else
+				printf(" |                ");
 		}
-  	BSP_LED_Toggle(LED_ORANGE);
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 3);
+		printf("\r\n");
+  	//BSP_LED_Toggle(LED_ORANGE);
+  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
   }
 }
 
@@ -476,7 +512,7 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 	/* Need to wait until I2C bus 1 peripherals are properly setup in WriteLine task */
 	for(;;)
 	{
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 		if (availableCells == 4)
 			break;
 	}
@@ -497,9 +533,9 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 			{
 				errs[i] += 1;
 				HAL_I2C_DeInit(cell[i].handle);
-		  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 				HAL_I2C_Init(cell[i].handle);
-		  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 			}
 			else
 			{
@@ -514,7 +550,7 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 					badstatus[i] += 1;
 			}
 		}
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
 	}
 }
 
@@ -525,7 +561,7 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 	/* Need to wait until I2C bus 3 peripherals are properly setup in WriteLine task */
 	for(;;)
 	{
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 		if (availableCells == 4)
 			break;
 	}
@@ -546,9 +582,9 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 			{
 				errs[i] += 1;
 				HAL_I2C_DeInit(cell[i].handle);
-		  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 				HAL_I2C_Init(cell[i].handle);
-		  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 			}
 			else
 			{
@@ -563,25 +599,25 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 					badstatus[i] += 1;
 			}
 		}
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
 	}
 }
 
 void tx_cm4_uart_thread_entry(ULONG thread_input)
 {
-  //UINT status;
-  UCHAR read_buffer[32];
-  CHAR data[] = "This is ThreadX working on STM32 CM4";
+	//UINT status;
+	UCHAR read_buffer[32];
+	CHAR data[] = "This is ThreadX working on STM32 CM4";
 
 	printf("\r\n%s\r\nStarting Run on %s\r\n", data, _tx_version_id);
-  /* Infinite Loop */
-  for( ;; )
-  {
+	/* Infinite Loop */
+	for( ;; )
+	{
 
-  	BSP_LED_Toggle(LED_ORANGE);
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
+		BSP_LED_Toggle(LED_ORANGE);
+		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 
-  }
+	}
 	HAL_UART_Receive_DMA(&huart1, read_buffer, 32);
 	unsigned int u2cc = __HAL_DMA_GET_COUNTER(huart1.hdmarx);
 	//HAL_StatusTypeDef res;

@@ -45,17 +45,29 @@ _Min_Stack_Size = 0x400 ; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM    (xrw)   : ORIGIN = 0x24000000, LENGTH =  256K    /* Memory is divided. Actual start is 0x24000000 and actual length is 512K */
+  RAM     (xrw)  : ORIGIN = 0x24000000, LENGTH =  256K    /* Memory is divided. Actual start is 0x24000000 and actual length is 512K */
   FLASH   (rx)   : ORIGIN = 0x08000000, LENGTH = 1024K    /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
-  DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
-  RAM_D2 (xrw)   : ORIGIN = 0x30000000, LENGTH = 288K
-  RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
-  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
+  DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH =  128K
+  RAM_D2  (xrw)  : ORIGIN = 0x30000000, LENGTH =  256K    /* SRAM1 + SRAM2 */
+  SRAM3   (xrw)  : ORIGIN = 0x30040000, LENGTH =   32K    /* we want to use this as shared memory between the 2 cores */
+  RAM_D3  (xrw)  : ORIGIN = 0x38000000, LENGTH =   64K
+  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH =   64K
 }
 
 /* Sections */
 SECTIONS
 {
+  /* We want some shared memory between the 2 cores, and we want to decide the order in the linker script */
+  .sram3 :
+  {
+    *(.sram3.bridgeValue*);
+    *(.sram3.bridgeCount*);
+    *(.sram3.bridgeStale*);
+    *(.sram3.bridgeError*);
+    *(.sram3.bridgeBadstatus*);
+    *(.sram3*);
+  } > SRAM3
+
   /* The startup code into "FLASH" Rom type memory */
   .isr_vector :
   {

@@ -65,6 +65,14 @@ TX_EVENT_FLAGS_GROUP cm7_event_group;
 
 GX_WINDOW_ROOT *root_window;
 
+/* data comning from CM4 core */
+__attribute__((section(".sram3.bridgeError"))) volatile unsigned int bridgeError[4];
+__attribute__((section(".sram3.bridgeCount"))) volatile unsigned int bridgeCount[4];
+__attribute__((section(".sram3.bridgeStale"))) volatile unsigned int bridgeStale[4];
+__attribute__((section(".sram3.bridgeBadstatus"))) volatile unsigned int bridgeBadstatus[4];
+__attribute__((section(".sram3.bridgeValue"))) volatile uint32_t bridgeValue[4];
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -209,8 +217,22 @@ void tx_cm7_lcd_thread_entry(ULONG thread_input)
 /*************************************************************************************/
 VOID weight_update()
 {
+	uint32_t low[4] = { 950, 950, 950, 950 };
+	uint32_t total = 0;
   /* Set a value to “my_numeric_pix_prompt”. */
-  gx_numeric_pixelmap_prompt_value_set(&main_window.main_window_weight_prompt, (uwTick / 100) % 10000);
+	for (unsigned int i = 0; i < 4; i++)
+	{
+		uint32_t weight = (bridgeValue[i] >> 16) & 0x3fff;
+		if (weight < low[i])
+			weight = 0;
+		else
+			weight -= low[i];
+		weight *= 5000;
+		weight /= 14000;
+		total += weight;
+	}
+	total /= 10;
+  gx_numeric_pixelmap_prompt_value_set(&main_window.main_window_weight_prompt, total);
 }
 
 /*************************************************************************************/

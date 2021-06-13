@@ -70,11 +70,11 @@ volatile unsigned int u2tc;
 volatile unsigned int u2htc;
 volatile unsigned int u2ec;
 volatile unsigned int u2ic;
-volatile unsigned int errs[4], errs3, errs4;
-volatile unsigned int counts[4], counts3, counts4;
-volatile unsigned int stale[4], stale3, stale4;
-volatile unsigned int badstatus[4], badstatus3, badstatus4;
-volatile uint8_t bridgeValue[4 * 4], bridgeValue3[4], bridgeValue4[4];
+__attribute__((section(".sram3.bridgeError"))) volatile unsigned int bridgeError[4];
+__attribute__((section(".sram3.bridgeCount"))) volatile unsigned int bridgeCount[4];
+__attribute__((section(".sram3.bridgeStale"))) volatile unsigned int bridgeStale[4];
+__attribute__((section(".sram3.bridgeBadstatus"))) volatile unsigned int bridgeBadstatus[4];
+__attribute__((section(".sram3.bridgeValue"))) volatile uint32_t bridgeValue[4];
 unsigned char dbgBuf[256];
 unsigned char input[64];
 unsigned char u2tx[256];
@@ -470,13 +470,13 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
   	// should maybe setup a way to go back to probe and address adjust mode if there are errors
   	ULONG ticks = tx_time_get() / TX_TIMER_TICKS_PER_SECOND;
 		printf("WS %8lu",ticks);
-		printf(" | %u %u %u %u",errs[0],badstatus[0],errs[1],badstatus[1]);
-		printf(" %u %u %u %u",errs[2],badstatus[2],errs[3],badstatus[3]);
+		printf(" | %u %u %u %u",bridgeError[0],bridgeBadstatus[0],bridgeError[1],bridgeBadstatus[1]);
+		printf(" %u %u %u %u",bridgeError[2],bridgeBadstatus[2],bridgeError[3],bridgeBadstatus[3]);
 		for (unsigned int i = 0; i < 4; i++)
 		{
-			if (c[i] != counts[i])
+			if (c[i] != bridgeCount[i])
 			{
-				uint32_t weight = (bridgeValue[i * 4] & 0x3f) * 256 + bridgeValue[i * 4 + 1];
+				uint32_t weight = (bridgeValue[i] >> 16) & 0x3fff;
 				if (setZero[i])
 				{
 					low[i] = weight;
@@ -489,12 +489,12 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 				weight *= 5000;
 				weight /= 14000;
 				printf(" | %2d.%02d kg", (uint16_t)(weight / 100), (uint16_t)(weight % 100));
-				uint32_t temp = (bridgeValue[i * 4 + 2] << 3) + (bridgeValue[i * 4 + 3] >> 5);
+				uint32_t temp = (bridgeValue[i] >> 5) & 0x7ff;
 				temp *= 2000;
 				temp /= 2048; // just a guess at this point...
 				temp -= 500;
 				printf(" %2d.%01d C", (uint16_t)(temp / 10), (uint16_t)(temp % 10));
-				c[i] = counts[i];
+				c[i] = bridgeCount[i];
 			}
 			else
 				printf(" |                ");
@@ -522,6 +522,13 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 	for (unsigned int i = cellStart; i < cellEnd; i++)
 		HAL_GPIO_WritePin(cell[i].gpio, cell[i].pin, GPIO_PIN_RESET);
 	HAL_Delay(10);
+	for (unsigned int i = cellStart; i < cellEnd; i++)
+	{
+		bridgeError[i] = 0;
+		bridgeStale[i] = 0;
+		bridgeCount[i] = 0;
+		bridgeBadstatus[i] = 0;
+	}
 	/* Infinite loop */
 	for(;;)
 	{
@@ -531,7 +538,7 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 			res = HAL_I2C_Master_Receive(cell[i].handle, cell[i].address | 1, dataBuf, 4, I2C_Timeout);
 			if (res != HAL_OK)
 			{
-				errs[i] += 1;
+				bridgeError[i] += 1;
 				HAL_I2C_DeInit(cell[i].handle);
 				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 				HAL_I2C_Init(cell[i].handle);
@@ -542,12 +549,12 @@ void tx_cm4_i2c1_thread_entry(ULONG thread_input)
 				uint8_t status = (dataBuf[0] >> 6) & 0x3;
 				if (status == 0)
 				{
-					counts[i] += 1;
-					memcpy((void *) bridgeValue + i * 4, dataBuf, 4);
+					bridgeValue[i] = (dataBuf[0] << 24) | (dataBuf[1] << 16) | (dataBuf[2] << 8) | dataBuf[3];
+					bridgeCount[i] += 1;
 				} else if (status == 2)
-					stale[i] += 1;
+					bridgeStale[i] += 1;
 				else
-					badstatus[i] += 1;
+					bridgeBadstatus[i] += 1;
 			}
 		}
 		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);
@@ -571,6 +578,13 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 	for (unsigned int i = cellStart; i < cellEnd; i++)
 		HAL_GPIO_WritePin(cell[i].gpio, cell[i].pin, GPIO_PIN_RESET);
 	HAL_Delay(10);
+	for (unsigned int i = cellStart; i < cellEnd; i++)
+	{
+		bridgeError[i] = 0;
+		bridgeStale[i] = 0;
+		bridgeCount[i] = 0;
+		bridgeBadstatus[i] = 0;
+	}
 	/* Infinite loop */
 	for(;;)
 	{
@@ -580,7 +594,7 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 			res = HAL_I2C_Master_Receive(cell[i].handle, cell[i].address | 1, dataBuf, 4, I2C_Timeout);
 			if (res != HAL_OK)
 			{
-				errs[i] += 1;
+				bridgeError[i] += 1;
 				HAL_I2C_DeInit(cell[i].handle);
 				tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 2);
 				HAL_I2C_Init(cell[i].handle);
@@ -591,12 +605,12 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 				uint8_t status = (dataBuf[0] >> 6) & 0x3;
 				if (status == 0)
 				{
-					counts[i] += 1;
-					memcpy((void *) bridgeValue + i * 4, dataBuf, 4);
+					bridgeValue[i] = (dataBuf[0] << 24) | (dataBuf[1] << 16) | (dataBuf[2] << 8) | dataBuf[3];
+					bridgeCount[i] += 1;
 				} else if (status == 2)
-					stale[i] += 1;
+					bridgeStale[i] += 1;
 				else
-					badstatus[i] += 1;
+					bridgeBadstatus[i] += 1;
 			}
 		}
 		tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 20);

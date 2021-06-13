@@ -31,6 +31,10 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "gx_api.h"
+#include "gx_display.h"
+#include "H747_Test_specifications.h"
+#include "H747_Test_resources.h"
 #include "stm32h747i_discovery.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h747i_discovery.h"
@@ -38,6 +42,7 @@ extern "C" {
 #include "stm32h747i_discovery_sdram.h"
 #include "stm32h747i_discovery_bus.h"
 #include "stm32_lcd.h"
+#include "main.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -70,6 +75,7 @@ void update_image(void);
 /* USER CODE BEGIN PD */
 
 #define LCD_FRAME_BUFFER        0xD0000000
+#define CLOCK_TIMER             0x01
 
 /* USER CODE END PD */
 

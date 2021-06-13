@@ -1,0 +1,3 @@
+[submodule "Middlewares/guix"]
+	path = Middlewares/guix
+	url = git@github.com:azure-rtos/guix.git

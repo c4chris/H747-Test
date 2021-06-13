@@ -44,13 +44,25 @@ _Min_Stack_Size = 0x400 ; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08100000, LENGTH = 1024K
-RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 288K
+  FLASH (rx)      : ORIGIN = 0x08100000, LENGTH = 1024K
+  RAM   (xrw)     : ORIGIN = 0x10000000, LENGTH =  256K    /* SRAM1 + SRAM2 */
+  SRAM3 (xrw)     : ORIGIN = 0x10040000, LENGTH =   32K    /* we want to use this as shared memory between the 2 cores */
 }
 
 /* Define output sections */
 SECTIONS
 {
+  /* We want some shared memory between the 2 cores, and we want to decide the order in the linker script */
+  .sram3 :
+  {
+    *(.sram3.bridgeValue*);
+    *(.sram3.bridgeCount*);
+    *(.sram3.bridgeStale*);
+    *(.sram3.bridgeError*);
+    *(.sram3.bridgeBadstatus*);
+    *(.sram3*);
+  } > SRAM3
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {

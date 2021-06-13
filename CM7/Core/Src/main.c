@@ -75,8 +75,8 @@ SDRAM_HandleTypeDef hsdram1;
 
 /* USER CODE BEGIN PV */
 
-static __IO int32_t  front_buffer   = 0;
-static __IO int32_t  pend_buffer   = -1;
+__IO int32_t  front_buffer   = 0;
+__IO int32_t  pend_buffer   = -1;
 static uint32_t ImageIndex = 0;
 static const uint32_t * Images[] =
 {
@@ -84,7 +84,7 @@ static const uint32_t * Images[] =
   life_augmented_argb8888,
 };
 
-static const uint32_t Buffers[] =
+const uint32_t Buffers[] =
 {
   LCD_FRAME_BUFFER,
   LCD_FRAME_BUFFER + (800*480*4),

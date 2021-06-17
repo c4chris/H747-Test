@@ -78,6 +78,8 @@ void Error_Handler(void);
 #define I2C1_SDA_GPIO_Port GPIOB
 #define I2C1_SCL_Pin GPIO_PIN_8
 #define I2C1_SCL_GPIO_Port GPIOB
+#define TOUCH_INT_Pin GPIO_PIN_7
+#define TOUCH_INT_GPIO_Port GPIOK
 #define STLINK_TX_Pin GPIO_PIN_10
 #define STLINK_TX_GPIO_Port GPIOA
 #define STLINK_RX_Pin GPIO_PIN_9

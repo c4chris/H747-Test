@@ -33,7 +33,6 @@
 /* USER CODE BEGIN PTD */
 
 extern LTDC_HandleTypeDef hlcd_ltdc;
-static DMA2D_HandleTypeDef           hdma2d;
 extern DSI_HandleTypeDef hlcd_dsi;
 DSI_VidCfgTypeDef hdsivideo_handle;
 DSI_CmdCfgTypeDef CmdCfg;
@@ -71,6 +70,8 @@ static RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
 
 /* Private variables ---------------------------------------------------------*/
 
+DMA2D_HandleTypeDef hdma2d;
+
 SDRAM_HandleTypeDef hsdram1;
 
 /* USER CODE BEGIN PV */
@@ -97,6 +98,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_FMC_Init(void);
+static void MX_DMA2D_Init(void);
 /* USER CODE BEGIN PFP */
 
 static void CopyBuffer(uint32_t *pSrc,
@@ -246,6 +248,7 @@ Error_Handler();
   //MX_GPIO_Init();
   //MX_DMA_Init();
   //MX_FMC_Init();
+  //MX_DMA2D_Init();
   MX_AZURE_RTOS_Init();
   /* USER CODE BEGIN 2 */
 
@@ -319,6 +322,46 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSI, RCC_MCODIV_1);
+}
+
+/**
+  * @brief DMA2D Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DMA2D_Init(void)
+{
+
+  /* USER CODE BEGIN DMA2D_Init 0 */
+
+  /* USER CODE END DMA2D_Init 0 */
+
+  /* USER CODE BEGIN DMA2D_Init 1 */
+
+  /* USER CODE END DMA2D_Init 1 */
+  hdma2d.Instance = DMA2D;
+  hdma2d.Init.Mode = DMA2D_M2M;
+  hdma2d.Init.ColorMode = DMA2D_OUTPUT_ARGB8888;
+  hdma2d.Init.OutputOffset = 0;
+  hdma2d.LayerCfg[1].InputOffset = 0;
+  hdma2d.LayerCfg[1].InputColorMode = DMA2D_INPUT_ARGB8888;
+  hdma2d.LayerCfg[1].AlphaMode = DMA2D_NO_MODIF_ALPHA;
+  hdma2d.LayerCfg[1].InputAlpha = 0;
+  hdma2d.LayerCfg[1].AlphaInverted = DMA2D_REGULAR_ALPHA;
+  hdma2d.LayerCfg[1].RedBlueSwap = DMA2D_RB_REGULAR;
+  hdma2d.LayerCfg[1].ChromaSubSampling = DMA2D_NO_CSS;
+  if (HAL_DMA2D_Init(&hdma2d) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DMA2D_Init 2 */
+
+  /* USER CODE END DMA2D_Init 2 */
+
 }
 
 /**

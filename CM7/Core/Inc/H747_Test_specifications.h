@@ -6,7 +6,7 @@
 /*  GUIX Studio User Guide, or visit our web site at azure.com/rtos            */
 /*                                                                             */
 /*  GUIX Studio Revision 6.1.7.0                                               */
-/*  Date (dd.mm.yyyy): 10. 6.2021   Time (hh:mm): 00:36                        */
+/*  Date (dd.mm.yyyy): 19. 6.2021   Time (hh:mm): 00:02                        */
 /*******************************************************************************/
 
 
@@ -88,6 +88,25 @@ typedef struct
     GX_RESOURCE_ID wallpaper_id;
 } GX_WINDOW_PROPERTIES;
 
+typedef struct
+{
+    int                 total_rows;
+    int                 selected_row;
+    GX_VALUE            row_height;
+    GX_UBYTE            start_alpha;
+    GX_UBYTE            end_alpha;
+    GX_RESOURCE_ID      normal_font;
+    GX_RESOURCE_ID      selected_font;
+    GX_RESOURCE_ID      normal_text_color;
+    GX_RESOURCE_ID      selected_text_color;
+    GX_RESOURCE_ID      disabled_text_color;
+    GX_RESOURCE_ID      wallpaper_id;
+    GX_RESOURCE_ID      selected_background;
+    UINT (*callback)(struct GX_NUMERIC_SCROLL_WHEEL_STRUCT*, INT, GX_STRING *);
+    int                 start_val;
+    int                 end_val;
+} GX_NUMERIC_SCROLL_WHEEL_PROPERTIES;
+
 
 /* Declare top-level control blocks                                            */
 
@@ -95,6 +114,8 @@ typedef struct MAIN_WINDOW_CONTROL_BLOCK_STRUCT
 {
     GX_WINDOW_MEMBERS_DECLARE
     GX_NUMERIC_PIXELMAP_PROMPT main_window_weight_prompt;
+    GX_BUTTON main_window_button;
+    GX_NUMERIC_SCROLL_WHEEL main_window_numeric_scroll_wheel;
 } MAIN_WINDOW_CONTROL_BLOCK;
 
 
@@ -135,8 +156,10 @@ typedef struct GX_STUDIO_DISPLAY_INFO_STRUCT
 
 /* Declare Studio-generated functions for creating top-level widgets           */
 
+UINT gx_studio_button_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent);
 UINT gx_studio_numeric_pixelmap_prompt_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent);
 UINT gx_studio_window_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent);
+UINT gx_studio_numeric_scroll_wheel_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent);
 GX_WIDGET *gx_studio_widget_create(GX_BYTE *storage, GX_CONST GX_STUDIO_WIDGET *definition, GX_WIDGET *parent);
 UINT gx_studio_named_widget_create(char *name, GX_WIDGET *parent, GX_WIDGET **new_widget);
 UINT gx_studio_display_configure(USHORT display, UINT (*driver)(GX_DISPLAY *), GX_UBYTE language, USHORT theme, GX_WINDOW_ROOT **return_root);

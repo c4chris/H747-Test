@@ -56,6 +56,7 @@ SECTIONS
   .sram3 :
   {
     *(.sram3.bridgeValue*);
+    *(.sram3.touchData*);
     *(.sram3.bridgeCount*);
     *(.sram3.bridgeStale*);
     *(.sram3.bridgeError*);

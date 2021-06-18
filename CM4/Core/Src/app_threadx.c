@@ -75,7 +75,7 @@ __attribute__((section(".sram3.bridgeCount"))) volatile unsigned int bridgeCount
 __attribute__((section(".sram3.bridgeStale"))) volatile unsigned int bridgeStale[4];
 __attribute__((section(".sram3.bridgeBadstatus"))) volatile unsigned int bridgeBadstatus[4];
 __attribute__((section(".sram3.bridgeValue"))) volatile uint32_t bridgeValue[4];
-volatile uint16_t touchData[4];
+__attribute__((section(".sram3.touchData"))) volatile uint16_t touchData[4], touchData2[4];
 unsigned char dbgBuf[256];
 unsigned char input[64];
 unsigned char u2tx[256];
@@ -500,7 +500,7 @@ void tx_cm4_main_thread_entry(ULONG thread_input)
 			else
 				printf(" |                ");
 		}
-		printf(" | %u %4u %4u %6u\r\n", touchData[0], touchData[1], touchData[2], touchData[3]);
+		printf(" | %u %4u %4u %6u | %u %4u %4u %6u\r\n", touchData[0], touchData[1], touchData[2], touchData[3], touchData2[0], touchData2[1], touchData2[2], touchData2[3]);
   	//BSP_LED_Toggle(LED_ORANGE);
   	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
   }
@@ -628,18 +628,16 @@ void tx_cm4_i2c4_thread_entry(ULONG thread_input)
 		  if (HAL_I2C_Mem_Read(&hi2c4, TS_I2C_ADDRESS, FT6X06_TD_STAT_REG, I2C_MEMADD_SIZE_8BIT, &nb_touch, 1, 1000) == HAL_OK)
 		  {
 		  	nb_touch &= FT6X06_TD_STATUS_BIT_MASK;
-	      touchData[0] = nb_touch;
 		    if(HAL_I2C_Mem_Read(&hi2c4, TS_I2C_ADDRESS, FT6X06_P1_XH_REG, I2C_MEMADD_SIZE_8BIT, data, 4, 1000) == HAL_OK)
 		    {
 		      touchX = (((uint32_t)data[0] & FT6X06_P1_XH_TP_BIT_MASK) << 8) | ((uint32_t)data[1] & FT6X06_P1_XL_TP_BIT_MASK);
 		      touchY = (((uint32_t)data[2] & FT6X06_P1_YH_TP_BIT_MASK) << 8) | ((uint32_t)data[3] & FT6X06_P1_YL_TP_BIT_MASK);
+		      touchData[0] = nb_touch;
 		      touchData[1] = touchX;
 		      touchData[2] = touchY;
 		      touchData[3] += 1;
 		    }
 		  }
-		  else
-		  	touchData[0] = -1;
 		}
 		else
 			BSP_LED_Off(LED_GREEN);

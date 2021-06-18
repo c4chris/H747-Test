@@ -6,7 +6,7 @@
 /*  GUIX Studio User Guide, or visit our web site at azure.com/rtos            */
 /*                                                                             */
 /*  GUIX Studio Revision 6.1.7.0                                               */
-/*  Date (dd.mm.yyyy): 10. 6.2021   Time (hh:mm): 00:36                        */
+/*  Date (dd.mm.yyyy): 19. 6.2021   Time (hh:mm): 00:02                        */
 /*******************************************************************************/
 
 
@@ -44,6 +44,14 @@ GX_STUDIO_DISPLAY_INFO H747_Test_display_table[1] =
     }
 };
 
+
+UINT gx_studio_button_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent)
+{
+    UINT status;
+    GX_BUTTON *button = (GX_BUTTON *) control_block;
+    status = gx_button_create(button, info->widget_name, parent, info->style, info->widget_id, &info->size);
+    return status;
+}
 
 UINT gx_studio_numeric_pixelmap_prompt_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent)
 {
@@ -98,6 +106,46 @@ UINT gx_studio_window_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control
     }
     return status;
 }
+
+UINT gx_studio_numeric_scroll_wheel_create(GX_CONST GX_STUDIO_WIDGET *info, GX_WIDGET *control_block, GX_WIDGET *parent)
+{
+    UINT status;
+    GX_NUMERIC_SCROLL_WHEEL *wheel = (GX_NUMERIC_SCROLL_WHEEL *) control_block;
+    GX_NUMERIC_SCROLL_WHEEL_PROPERTIES *props = (GX_NUMERIC_SCROLL_WHEEL_PROPERTIES *) info->properties;
+    status = gx_numeric_scroll_wheel_create(wheel, info->widget_name, parent, props->start_val, props->end_val, 
+                                    info->style, info->widget_id, &info->size);
+    if (status == GX_SUCCESS)
+    {
+        if (props->wallpaper_id)
+        {
+            gx_window_wallpaper_set((GX_WINDOW *) wheel, props->wallpaper_id, info->style & GX_STYLE_TILE_WALLPAPER);
+        }
+        if(props->selected_background)
+        {
+            gx_scroll_wheel_selected_background_set((GX_SCROLL_WHEEL *)wheel, props->selected_background);
+        }
+
+        if (props->total_rows)
+        {
+            gx_scroll_wheel_total_rows_set((GX_SCROLL_WHEEL *)wheel, props->total_rows);
+        }
+
+        gx_scroll_wheel_selected_set((GX_SCROLL_WHEEL *)wheel, props->selected_row);
+        gx_scroll_wheel_gradient_alpha_set((GX_SCROLL_WHEEL *)wheel, props->start_alpha, props->end_alpha);
+        gx_scroll_wheel_row_height_set((GX_SCROLL_WHEEL *)wheel, props->row_height);
+        gx_text_scroll_wheel_font_set((GX_TEXT_SCROLL_WHEEL *)wheel, props->normal_font, props->selected_font);
+#if defined(GUIX_5_4_0_COMPATIBILITY)
+        gx_text_scroll_wheel_text_color_set((GX_TEXT_SCROLL_WHEEL *)wheel, props->normal_text_color, props->selected_text_color);
+#else
+        gx_text_scroll_wheel_text_color_set((GX_TEXT_SCROLL_WHEEL *)wheel, props->normal_text_color, props->selected_text_color, props->disabled_text_color);
+#endif
+        if(props->callback)
+        {
+            gx_text_scroll_wheel_callback_set_ext((GX_TEXT_SCROLL_WHEEL *)wheel, (UINT (*)(GX_TEXT_SCROLL_WHEEL*, INT, GX_STRING *))props->callback);
+        }
+    }
+    return status;
+}
 GX_WINDOW_PROPERTIES main_window_properties =
 {
     0                                        /* wallpaper pixelmap id          */
@@ -118,6 +166,72 @@ GX_NUMERIC_PIXELMAP_PROMPT_PROPERTIES main_window_weight_prompt_properties =
     weight_format_func,                      /* format function                */
     1234                                     /* numeric prompt value           */
 };
+GX_NUMERIC_SCROLL_WHEEL_PROPERTIES main_window_numeric_scroll_wheel_properties =
+{
+    0,                                       /* total rows                     */
+    0,                                       /* selected row                   */
+    50,                                      /* row height                     */
+    0,                                       /* start alpha                    */
+    0,                                       /* end alpha                      */
+    GX_FONT_ID_SYSTEM,                       /* normal font id                 */
+    GX_FONT_ID_SYSTEM,                       /* selected font id               */
+    GX_COLOR_ID_SHADOW,                      /* normal text color id           */
+    GX_COLOR_ID_TEXT,                        /* selected text color id         */
+    GX_COLOR_ID_DISABLED_TEXT,               /* disabled text color id         */
+    0,                                       /* wallpaper id                   */
+    0,                                       /* selected background            */
+    GX_NULL,                                 /* format callback                */
+    0,                                       /* start val                      */
+    9,                                       /* end val                        */
+};
+
+GX_CONST GX_STUDIO_WIDGET main_window_numeric_scroll_wheel_define =
+{
+    "numeric_scroll_wheel",
+    GX_TYPE_NUMERIC_SCROLL_WHEEL,            /* widget type                    */
+    GX_ID_NONE,                              /* widget id                      */
+    #if defined(GX_WIDGET_USER_DATA)
+    0,                                       /* user data                      */
+    #endif
+    GX_STYLE_BORDER_THIN|GX_STYLE_ENABLED|GX_STYLE_WRAP|GX_STYLE_TEXT_CENTER,   /* style flags */
+    GX_STATUS_ACCEPTS_FOCUS,                 /* status flags                   */
+    sizeof(GX_NUMERIC_SCROLL_WHEEL),         /* control block size             */
+    GX_COLOR_ID_WINDOW_FILL,                 /* normal color id                */
+    GX_COLOR_ID_WINDOW_FILL,                 /* selected color id              */
+    GX_COLOR_ID_DISABLED_FILL,               /* disabled color id              */
+    gx_studio_numeric_scroll_wheel_create,     /* create function              */
+    GX_NULL,                                 /* drawing function override      */
+    GX_NULL,                                 /* event function override        */
+    {30, 217, 129, 456},                     /* widget size                    */
+    GX_NULL,                                 /* no next widget                 */
+    GX_NULL,                                 /* no child widgets               */ 
+    offsetof(MAIN_WINDOW_CONTROL_BLOCK, main_window_numeric_scroll_wheel), /* control block */
+    (void *) &main_window_numeric_scroll_wheel_properties /* extended properties */
+};
+
+GX_CONST GX_STUDIO_WIDGET main_window_button_define =
+{
+    "button",
+    GX_TYPE_BUTTON,                          /* widget type                    */
+    GX_ID_NONE,                              /* widget id                      */
+    #if defined(GX_WIDGET_USER_DATA)
+    0,                                       /* user data                      */
+    #endif
+    GX_STYLE_BORDER_RAISED|GX_STYLE_ENABLED|GX_STYLE_BUTTON_TOGGLE,   /* style flags */
+    GX_STATUS_ACCEPTS_FOCUS,                 /* status flags                   */
+    sizeof(GX_BUTTON),                       /* control block size             */
+    GX_COLOR_ID_BTN_LOWER,                   /* normal color id                */
+    GX_COLOR_ID_BTN_UPPER,                   /* selected color id              */
+    GX_COLOR_ID_DISABLED_FILL,               /* disabled color id              */
+    gx_studio_button_create,                 /* create function                */
+    GX_NULL,                                 /* drawing function override      */
+    GX_NULL,                                 /* event function override        */
+    {655, 32, 774, 151},                     /* widget size                    */
+    &main_window_numeric_scroll_wheel_define, /* next widget definition        */
+    GX_NULL,                                 /* no child widgets               */ 
+    offsetof(MAIN_WINDOW_CONTROL_BLOCK, main_window_button), /* control block  */
+    (void *) GX_NULL                         /* no extended properties         */
+};
 
 GX_CONST GX_STUDIO_WIDGET main_window_weight_prompt_define =
 {
@@ -128,7 +242,7 @@ GX_CONST GX_STUDIO_WIDGET main_window_weight_prompt_define =
     0,                                       /* user data                      */
     #endif
     GX_STYLE_BORDER_NONE|GX_STYLE_ENABLED|GX_STYLE_TEXT_RIGHT,   /* style flags */
-    GX_STATUS_ACCEPTS_FOCUS,                 /* status flags                   */
+    0,                                       /* status flags                   */
     sizeof(GX_NUMERIC_PIXELMAP_PROMPT),      /* control block size             */
     GX_COLOR_ID_WIDGET_FILL,                 /* normal color id                */
     GX_COLOR_ID_SELECTED_FILL,               /* selected color id              */
@@ -137,7 +251,7 @@ GX_CONST GX_STUDIO_WIDGET main_window_weight_prompt_define =
     GX_NULL,                                 /* drawing function override      */
     (UINT (*)(GX_WIDGET *, GX_EVENT *)) weight_prompt_event, /* event function override */
     {1, 0, 637, 184},                        /* widget size                    */
-    GX_NULL,                                 /* no next widget                 */
+    &main_window_button_define,              /* next widget definition         */
     GX_NULL,                                 /* no child widgets               */ 
     offsetof(MAIN_WINDOW_CONTROL_BLOCK, main_window_weight_prompt), /* control block */
     (void *) &main_window_weight_prompt_properties /* extended properties      */

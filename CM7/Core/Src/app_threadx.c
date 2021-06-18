@@ -71,7 +71,7 @@ __attribute__((section(".sram3.bridgeCount"))) volatile unsigned int bridgeCount
 __attribute__((section(".sram3.bridgeStale"))) volatile unsigned int bridgeStale[4];
 __attribute__((section(".sram3.bridgeBadstatus"))) volatile unsigned int bridgeBadstatus[4];
 __attribute__((section(".sram3.bridgeValue"))) volatile uint32_t bridgeValue[4];
-
+__attribute__((section(".sram3.touchData"))) volatile uint16_t touchData[4], touchData2[4];
 
 /* USER CODE END PV */
 
@@ -224,38 +224,59 @@ void tx_cm7_main_thread_entry(ULONG thread_input)
   //UINT status;
   //CHAR read_buffer[32];
   //CHAR data[] = "This is ThreadX working on STM32 CM7";
+	uint16_t curTouch[4];
+	uint16_t prevTouch[4] = {0};
+	ULONG toggleTicks = tx_time_get();
 
   /* Infinite Loop */
   for( ;; )
   {
-  	BSP_LED_Toggle(LED_BLUE);
-  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
+  	ULONG ticks = tx_time_get();
+  	if (ticks >= toggleTicks)
+  	{
+    	BSP_LED_Toggle(LED_BLUE);
+  		toggleTicks = ticks + TX_TIMER_TICKS_PER_SECOND;
+  	}
+  	touchData2[0] = touchData[0];
+  	touchData2[1] = touchData[1];
+  	touchData2[2] = touchData[2];
+  	touchData2[3] = touchData[3];
+  	if (touchData[3] != prevTouch[3])
+  	{
+  		/* Send a pen event for processing. */
+  		GX_EVENT e = {0};
+  		//e.gx_event_display_handle = LCD_FRAME_BUFFER;
+    	curTouch[0] = touchData[0];
+    	curTouch[1] = touchData[1];
+    	curTouch[2] = touchData[2];
+    	curTouch[3] = touchData[3];
+  		e.gx_event_payload.gx_event_pointdata.gx_point_x = curTouch[2];       // Y value of touchscreen driver
+  		e.gx_event_payload.gx_event_pointdata.gx_point_y = 480 - curTouch[1]; // X value of touchscreen driver, but reversed
+  		if (curTouch[0] == 0)
+  		{
+    		e.gx_event_type = GX_EVENT_PEN_UP; // pen UP
+  			//BSP_LED_Off(LED_RED);
+  		}
+  		else if (prevTouch[0] == 0)
+  		{
+    		e.gx_event_type = GX_EVENT_PEN_DOWN; // pen DOWN
+  			//BSP_LED_On(LED_RED);
+  		}
+  		else
+    		e.gx_event_type = GX_EVENT_PEN_DRAG; // pen DRAG
+  		/* Push the event to event pool. */
+  		if (e.gx_event_type == GX_EVENT_PEN_DRAG)
+    		gx_system_event_fold(&e);
+  		else
+  			gx_system_event_send(&e);
+  		memcpy(prevTouch, curTouch, sizeof(curTouch));
+  	}
+  	tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 5);
   }
 }
 
 void tx_cm7_lcd_thread_entry(ULONG thread_input)
 {
-#if 0
-  UINT status;
-	ULONG actual_events;
-
-  /* Infinite Loop */
-  for( ;; )
-  {
-  	/* Request that event flags 0 is set. If it is set it should be cleared. If the event
-  	flags are not set, this service suspends for a maximum of
-  	20 timer-ticks. */
-  	status = tx_event_flags_get(&cm7_event_group, 0x1, TX_AND_CLEAR, &actual_events, 200);
-
-  	/* If status equals TX_SUCCESS, actual_events contains the actual events obtained. */
-  	if (status == TX_SUCCESS)
-  	{
-  		update_image();
-  	}
-  	else
-  		BSP_LED_Toggle(LED_RED);
-  }
-#endif
   extern GX_STUDIO_DISPLAY_INFO H747_Test_display_table[]; // meh...
 
   /* Initialize GUIX. */
@@ -311,7 +332,7 @@ UINT main_screen_event_handler(GX_WINDOW *window, GX_EVENT *event_ptr)
 			weight_update();
 
 			/* Start a timer to update weight. */
-			gx_system_timer_start(&main_window, CLOCK_TIMER, GX_TICKS_SECOND, GX_TICKS_SECOND);
+			gx_system_timer_start(&main_window, CLOCK_TIMER, GX_TICKS_SECOND / 2, GX_TICKS_SECOND / 2);
 			break;
 
 		case GX_EVENT_TIMER:
@@ -319,6 +340,10 @@ UINT main_screen_event_handler(GX_WINDOW *window, GX_EVENT *event_ptr)
 			{
 				weight_update();
 			}
+			break;
+
+		default:
+			BSP_LED_Toggle(LED_RED);
 			break;
 	}
 	return gx_window_event_process(window, event_ptr);
@@ -387,7 +412,7 @@ static void stm32h7_32argb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty_
 	}
 
 	/* Request that event flags 0 is set. If it is set it should be cleared. If the event
-	flags are not set, this service suspends for a maximum of 20 timer-ticks. */
+	flags are not set, this service suspends for a maximum of 200 timer-ticks. */
 	UINT status = tx_event_flags_get(&cm7_event_group, 0x1, TX_AND_CLEAR, &actual_events, 200);
 
 	/* If status equals TX_SUCCESS, actual_events contains the actual events obtained. */
@@ -425,8 +450,7 @@ static void stm32h7_32argb_buffer_toggle(GX_CANVAS *canvas, GX_RECTANGLE *dirty_
 		/* Assign canvas memory block. */
 		status = gx_canvas_memory_define(canvas, (GX_COLOR *) Buffers[1 - front_buffer], (800*480*4));
 
-		/* If status is GX_SUCCESS, the canvas memory pointer has be
-		reassigned. */
+		/* If status is GX_SUCCESS, the canvas memory pointer has been reassigned. */
 
 	}
 	else
@@ -437,20 +461,8 @@ UINT stm32h7_graphics_driver_setup_32argb(GX_DISPLAY *display)
 {
 	// Display hardware should have been setup already
 
-	_gx_display_driver_32argb_setup(display, (void *)LCD_FRAME_BUFFER, stm32h7_32argb_buffer_toggle);
+	_gx_display_driver_32argb_setup(display, GX_NULL, stm32h7_32argb_buffer_toggle);
 
 	return(GX_SUCCESS);
 }
-
-//void BSP_SD_DetectCallback(uint32_t Instance, uint32_t Status)
-//{
-//  ULONG s_msg = CARD_STATUS_CHANGED;
-//
-//  if(Instance == SD_INSTANCE)
-//  {
-//    tx_queue_send(&tx_msg_queue, &s_msg, TX_NO_WAIT);
-//  }
-//
-//  UNUSED(Status);
-//}
 /* USER CODE END 1 */

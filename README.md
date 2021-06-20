@@ -25,4 +25,6 @@ Cascadia Code font available here : https://github.com/microsoft/cascadia-code/r
 
 ![Board view](board.jpg)
 
+https://user-images.githubusercontent.com/39457172/122681712-ff93c880-d1f5-11eb-9324-e82c05754de2.mp4
+
 https://user-images.githubusercontent.com/39457172/114636730-0539d300-9cc8-11eb-848a-965ba606d748.mp4

@@ -23,6 +23,6 @@ Cascadia Code font available here : https://github.com/microsoft/cascadia-code/r
 
 ## board view
 
-![Board view](board.mp4)
+![Board view](board.jpg)
 
 https://user-images.githubusercontent.com/39457172/114636730-0539d300-9cc8-11eb-848a-965ba606d748.mp4
